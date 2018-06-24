@@ -1,39 +1,47 @@
 from glob import glob
 from xlrd import open_workbook
+import csv
 
 dataDirectory = 'Ontario2018GeneralElectionResults_raw'
 dataFiles = glob(dataDirectory + '/*.xls')
 dataFiles.sort()
 
-def candidate_info(row):
-    print('candidate_name:', row[7])
-    print('party:', row[6])
-    print('num_votes:', int(row[4]))
-    print('percent_votes:', row[5])
+header = ['Candidate Name',
+          'Riding',
+          'Party',
+          'Votes Count',
+          'Votes Percent',
+          'Elected',
+          'Win Margin Count',
+          'Win Margin Percent']
 
-sheet = open_workbook(dataFiles[0]).sheet_by_index(0);
+def candidate_info(row, riding):
+    return [row[7], # candidate name
+            riding, # riding
+            row[6], # party
+            int(row[4]), # votes count
+            row[5], # votes percent
+            False, # elected (default)
+            '', # win margin count (default)
+            ''] # win margin percent (default)
 
-print('Riding:', sheet.cell_value(12, 0))
-print()
-print('Winner:')
-candidate_info(sheet.row_values(11))
-print()
-print('Other Candidates:')
+def total_votes(sheet):
+    return sum([x for x in sheet.col_values(4) if isinstance(x, float)]);
 
-for row_index in range(16, sheet.nrows, 3):
-    candidate_info(sheet.row_values(row_index))
-    print()
 
-#for row_index in range(sheet.nrows):
-#    for col_index in range(sheet.ncols):
-#        cell = sheet.cell_value(row_index, col_index);
-#        if cell != '':
-#            print(row_index, col_index, cell)
+with open('output.csv', 'w', newline='') as csvfile:
+    output = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
+    output.writerow(header)
 
-# 12, 1 - Riding name
-# 11, 3 - Plurality
-# column 4 - votes
-#        5 - %
-#        6 - Party
-#        7 - Candidate Name
-# First row is 11, next is 16, next is 19, next is 22
+    for dataFile in dataFiles:
+        sheet = open_workbook(dataFile).sheet_by_index(0);
+        riding = sheet.cell_value(12, 0)
+
+        winner = candidate_info(sheet.row_values(11), riding)
+        winner[5] = True
+        winner[6] = sheet.cell_value(11, 3)
+        winner[7] = round(100*sheet.cell_value(11, 3)/total_votes(sheet), 1)
+        output.writerow(winner)
+
+        for row_index in range(16, sheet.nrows, 3):
+            output.writerow(candidate_info(sheet.row_values(row_index), riding))
