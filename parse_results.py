@@ -29,7 +29,7 @@ def total_votes(sheet):
     return sum([x for x in sheet.col_values(4) if isinstance(x, float)]);
 
 
-with open('output.csv', 'w', newline='') as csvfile:
+with open('candidates.csv', 'w', newline='') as csvfile:
     output = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
     output.writerow(header)
 
